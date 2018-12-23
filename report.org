@@ -1,0 +1,211 @@
+* Set up the antlr to produce a parser in python
+  antlr4 -Dlanguage=Python3 grammar.g4
+* Produce the parser corresponding to the grammar
+  antlr4 grammar.g4
+* Import listener
+  import listener 
+  import importlib
+* Reload Listener (in case of edit)
+  importlib.reload(listener)
+* Run test
+  %run frontend '../tests/testXX.bool'
+* Limits of the Application
+  For quantified formulas the input must be given in negation normal
+  form, due to the complexity of implementing a listener with input
+  containing atoms that a negated mutliple times. It also cannot 
+  distinguish syntax errors, in which case the application may not
+  complete the execution smoothly or even give the wrong answer. Parenthesis
+  must be properly used for the application to grasp the right scope of
+  the constructors.
+  For instance:
+  (forall #I in [0...1]
+     ~a | (b & ~u(#I) | (a & ~p(#I))))
+  is not equivalent to:
+  (forall #I in [0...1]
+     ~a | ((b & ~u(#I)) | (a & ~p(#I))))
+* Goal of the application
+  The idea of this frontend is to provide a data structure that
+  can be easily converted to CNF and to PyEDA as well as DIMACS
+  format. There is also support for the execution of arithmetic
+  expressions.
+* SAT Solvers Front-end (Description)
+  The purpose of the project is to develop a front-end for encoding 
+  problems in SAT using an high level language which is converted into 
+  optimised CNF and DIMACS format to be used with available SAT solvers.
+  There is no restriction on the programming language to be used, apart 
+  the fact that it can be tested on the Linux VM of the labs.
+
+  The evaluation of the results of your work will be evaluated by your 
+  peers after a session in which you’ll test the software developed by 
+  the other two groups.
+** The outcomes of your work should be:`
+*** the actual tool, both executable and source code
+*** a report describing both the tool (algorithms, design choices) 
+    and how to use it a 20 minutes presentation of your work   
+* Test Cases
+** DONE 1. Simple negation
+   ~q
+** DONE 2. Simple | operator
+   p | q
+** DONE 3. Simple & Operator
+   p & q
+** DONE 4. Simple ^ Operator
+   p ^ q
+** DONE 5-8. Conjunction of negated atom
+   p & ~p
+   ~p & p
+   ~p | p
+   p | ~p
+** DONE 9. Multiple negation
+   ~~~~q
+** DONE 10. Simple then
+   p -> q
+** DONE 11. Simple if
+   q <- p 
+** DONE 12. Double Implication
+   p <-> q
+** DONE 13. Simple ite with qm notation
+   p ? q : r
+** DONE 14. negated implication
+   ~(p -> q)
+** DONE 15. negated implication
+   ~(p <- q)
+** DONE 16-17. Complex negation of formulas negating unary/binary context with &, ^, |
+   ~(~((p | (~q & r)) & q) ^ ~(~p & ~q))
+   ~(~(~p & ~q) & ~(~q & r))
+** DONE 18-23. Complex negation of formulas negating unary/binary context with <->, ->, <-
+   ~(p -> s -> (q & r))
+   (~(p ->(r & ~(~q | r))) -> (q -> (v & ~(~r ->(q ^ (q | v))))))
+   ~p & u <-> q | o
+   (~p & (u|~q)) <-> q
+   a <- ~b
+   a <- (~a ^ b)
+** DONE 24. Simple forall and exists
+   (forall #I in [0...3]
+   p(#I))
+** DONE 25-26. Simple operator in the quant expression
+   (forall #I in [0...1]
+     ~a & p(#I))
+   (forall #I in [0...1]
+     a & ~p(#I))
+** DONE 27. Multiple operators in the quant expression
+   (forall #I in [0...1]
+     ~a | (b & ~u(#I) | (a & ~p(#I))))
+** DONE 28. Simple nested quantifier
+   (forall #I in [0...3]
+    (forall #V in [5...9]
+       p(#I) & ~a(#V)))
+** DONE 29. Multiple nested quantifiers
+   (forall #I in [0...3]
+    (exists #V in [0...2]
+      (forall #U in [0...2]
+       p(#I,#U) & ~a(#V,#U))))
+** DONE Multiple nested quantifiers with multiple operators in the quant expression
+   (forall #I in [0...3]
+    (exists #V in [0...2]
+      (forall #U in [0...2]
+        ~a(#V,#U) & (p(#I,#U) & ~p(#V)))))
+       
+* Doc Antlr
+** Identifiers
+   Token names start with an uppercase letter, parser rule name
+   aways start with a lowercase(?) letter. We can define a rule 
+   NameChar that identifies the valid characters letters used to 
+   compose an identifier(rule, token of label name).
+** Actions
+   Arbitrary text surrounded by curly braces. Which represent code
+   written in the target language. Embedded code can appear in @header
+   and @members named actions, parser and lexer rules, exception 
+   catching specifications, attribute sections for parser rules(return
+   values, argument, and locals) and some rule element options 
+   (currently predicate).
+** Grammar Structure
+   Grammar is essentially a grammar declaration followed by a list of 
+   rules. It`s possible to specify optinos, imports, token 
+   specificaitons and actions in any order. There can be at most one
+   each of options, imports, and tokens specifications.
+*** Rules
+    Rules take the basic form:
+    # ruleName: alternative | ... | alternativeN ;*
+    Parser rules must start with a lowercase letter and lexer rules 
+    with a uppercase letter, for instance:
+    # CON : LOWER ALNUM*;
+    Is an example of a lexer rule
+    # predicate
+    # : TRUE  # truth
+    # | FALSE # falsity
+    # | CON   # predicateConstant
+    # | PVAR  # predicateVariable
+    # ;
+    Is an example of a parser rule which uses the lexer rule CON
+
+    It is possible to specify grammars that only contains parser xor
+    lexer rules, by specifying a prefix, e.g. parser gammar gramName.
+**** Lexers Rules (Tokenizers)
+     Takes an individual characters and transform them into tokens,
+     the atoms the partser uses to create the logical structure.
+     If you are trying to parse the mathematical operation 437+734,
+     the lexer scans 4,3,7 and then space ' '. So that the first 
+     usually represent a number. Then it finds a + symbol, so it knows
+     it represent an operator, and lastly another number.
+**** Parsers Rules
+     Parsers consists of a set of parsers rules either in a parser or
+     or a combined grammar. An application launches a parser by 
+     invoking the rule function, generated by ANTLR, associated with
+     the desired start rule. 
+     # retstat : 'return' expr ';' ;
+     
+     Rules can also have alternatives separeted by |:
+     # operator:
+     #         stat:retstat
+     #         | 'break' ';'
+     #         | 'continue' ';'
+     #         ;
+     Alternatives are either a list of rule elements or empty. For
+     example, here`s a rule with an empty alternative that make the 
+     entire rule optional:
+     superClass
+     # superClass
+     #         : 'extends' ID
+     #         | // empty means other alternative(s) are optional
+     #         ;
+     We can get a more precise parse tree listener events by labeling
+     the outermost alternatives of a rule using the # operator. All 
+     alternatives within a rule must be labeled, or none of them. 
+     E.g.:
+     #  arg
+     # : term          # argTerm
+     # | intExpression # argIntExpression
+     # ;
+     The following rule context class definition will be created
+     #  Enter a parse tree produced by FormulaParser#argTerm.
+     # def enterArgTerm(self, ctx:FormulaParser.ArgTermContext):
+     #     pass
+     #  Exit a parse tree produced by FormulaParser#argTerm.
+     # def exitArgTerm(self, ctx:FormulaParser.ArgTermContext):
+     #     pass
+     #  Enter a parse tree produced by FormulaParser#argIntExpression.
+     # def enterArgIntExpression(self, ctx:FormulaParser.ArgIntExpressionContext):
+     #     pass
+     #  Exit a parse tree produced by FormulaParser#argIntExpression.
+     # def exitArgIntExpression(self, ctx:FormulaParser.ArgIntExpressionContext):
+     #     pass
+     
+***** Rule Context Objects
+      Antlr generates methods to access the rule contexts objectcs 
+      (parse tree nodes) associated with each rule reference. For rules 
+      with a single rule reference, antlr generates a method with no
+      arguments.
+      # arg
+      # : term          # argTerm
+      # | intExpression # argIntExpression
+      # ;
+      Antlr generates this context class:
+      # class ArgContext(ParserRuleContext):
+      #   def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
+      #       super().__init__(parent, invokingState)
+      #       self.parser = parser
+      #   def getRuleIndex(self):
+      #       return FormulaParser.RULE_arg
+      #   def copyFrom(self, ctx:ParserRuleContext):
+      #       super().copyFrom(ctx)
