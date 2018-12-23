@@ -1,0 +1,4 @@
+(forall #I in [0...3]
+    (exists #V in [0...2]
+      (forall #U in [0...2]
+       p(#I,#U) & ~a(#V,#U))))
